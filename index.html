@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <title>Dossiê Charcoal Steakhouse</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -334,6 +335,12 @@ table.hm td.tt{font-weight:800;background:var(--surface-2)}
 table.pz-tb{font-size:12.5px}table.pz-tb td:nth-child(4){white-space:nowrap}table.pz-tb a{color:var(--fg)}
 .pz-wa{white-space:pre-wrap;font-family:var(--f-body);font-size:13px;background:var(--surface-2);border-radius:14px;padding:14px;max-height:280px;overflow:auto;margin:0}
 .pz-tip{text-align:center}
+.gdch{display:flex;gap:3px;height:190px;align-items:stretch;margin:6px 0 4px;overflow-x:auto}
+.gdb{flex:1 0 16px;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:6px;padding-top:4px}
+.gdb.we{background:var(--surface-2)}.gdb .st{flex:1;width:70%;max-width:18px;display:flex;flex-direction:column;justify-content:flex-end}
+.gdb .st i{display:block;width:100%}.gdb .st i:first-child{border-radius:3px 3px 0 0}
+.gdb small{font-size:9.5px;color:var(--faint)}.gdb.off small{opacity:.45}
+#gd-tb td.r{white-space:nowrap}
 #i-it td.r,#i-it th.r{white-space:nowrap}#i-it td:first-child{min-width:170px}
 td small.pc{display:block;font-size:10.5px;font-weight:600;color:var(--faint);margin-top:1px}
 .fun{display:flex;flex-direction:column;gap:8px}
@@ -784,6 +791,16 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     </div>
   </div>
   <div class="al red big-al"><span class="em">🚨</span><div><p><b>O dinheiro informado no fechamento de caixa não bate com o sistema.</b></p><small id="g-cx"></small></div></div>
+  <div class="card" id="gd-card">
+    <div class="card-h"><h2>📅 Venda dia a dia no mês</h2><p>Filtre por mês e por canal</p></div>
+    <div class="filters" style="position:static;box-shadow:none;margin-bottom:14px"><div class="f-row"><span class="f-lab">Mês</span><div class="chips" id="gd-mes"></div></div><div class="f-row"><span class="f-lab">Canal</span><div class="chips" id="gd-can"></div></div></div>
+    <div class="bigs" id="gd-bigs"></div>
+    <div class="gdch" id="gd-ch"></div>
+    <div class="fx-lg"><span><i style="background:var(--brasa)"></i>Restaurante</span><span><i style="background:var(--warn)"></i>Boutique</span><span><i style="background:var(--roxo)"></i>iFood</span><span>Dia com fundo = fim de semana</span></div>
+    <div class="pend-note" id="gd-pend">⏳ <b>Forma de pagamento por dia:</b> os relatórios de formas de pagamento que chegaram são do mês inteiro, então ainda não dá para abrir crédito, débito, PIX e dinheiro por dia. <span id="gd-pg"></span></div>
+    <div class="tbl-wrap" style="margin-top:14px"><table class="dre" id="gd-tb"></table></div>
+    <p class="note" style="margin:10px 0 0">💳 Recebido = bruto − descontos − cancelamentos. É o valor que se divide entre as formas de pagamento (bate com o relatório de formas de pagamento). Líquido = recebido sem taxa de serviço e de entrega.</p>
+  </div>
   <div class="card" id="g-din-card">
     <div class="card-h"><h2>💵 Dinheiro mês a mês: venda × fechamento de caixa</h2><p>Direto do relatório "Formas de Pagamento" do Squalus</p></div>
     <div class="dinlg"><span><i style="background:var(--ok)"></i>✅ Vendido em dinheiro (sistema): <b>entra na venda</b></span><span><i style="background:var(--brasa)"></i>❌ Informado no fechamento: <b>não entra em nada</b></span></div>
@@ -1839,6 +1856,40 @@ $("pz-root").addEventListener("input",e=>{const f=e.target.closest("[data-f]");i
 addEventListener("keydown",e=>{if(location.hash!=="#pauta"||/INPUT|TEXTAREA/.test(document.activeElement?.tagName||""))return;if(e.key==="ArrowRight")pzGo(pzI+1);if(e.key==="ArrowLeft")pzGo(pzI-1)});
 $("pz-full").onclick=()=>{const el=$("pz-root");try{if(document.fullscreenElement)document.exitFullscreen();else el.requestFullscreen().catch(()=>{})}catch(e){}};
 pzRender();
+
+/* ===== DIA A DIA ===== */
+const gd={m:"10",c:""};
+const mnx=m=>MN[m]||(m===11?"Nov":String(m));
+const DSN={Dom:"Domingo",Seg:"Segunda",Ter:"Terça",Qua:"Quarta",Qui:"Quinta",Sex:"Sexta","Sáb":"Sábado",Sab:"Sábado"};
+const CHC={"1":["🛒","Boutique","var(--warn)"],"2":["🍽️","Restaurante","var(--brasa)"],"4":["🛵","iFood","var(--roxo)"]};
+function gdRender(){
+  const ms=[...new Set(VD.map(v=>+v.d.slice(3,5)))].sort((a,b)=>a-b);
+  $("gd-mes").innerHTML=chipsHTML(ms.map(m=>[String(m),mnx(m)+(m===11?" (parcial)":"")]),gd.m);
+  $("gd-can").innerHTML=chipsHTML([["","🔀 Todos"],["2","🍽️ Restaurante"],["1","🛒 Boutique"],["4","🛵 iFood"]],gd.c);
+  const m=+gd.m,dim=new Date(2026,m,0).getDate();
+  const vv=VD.filter(v=>+v.d.slice(3,5)===m&&(!gd.c||String(v.pdv)===gd.c));
+  const D={};vv.forEach(v=>{const d=+v.d.slice(0,2),o=D[d]??={ds:v.ds,n:0,tot:0,desc:0,canc:0,ts:0,te:0,liq:0,ch:{}};o.n+=v.n;o.tot+=v.tot;o.desc+=v.desc;o.canc+=v.canc;o.ts+=v.ts;o.te+=v.te;o.liq+=v.liq;o.ch[v.pdv]=(o.ch[v.pdv]||0)+(v.tot-v.desc-v.canc)});
+  const rec=o=>o.tot-o.desc-o.canc;
+  const days=Object.keys(D).map(Number).sort((a,b)=>a-b),T=days.reduce((a,d)=>a+rec(D[d]),0),TL=days.reduce((a,d)=>a+D[d].liq,0),TN=days.reduce((a,d)=>a+D[d].n,0);
+  const best=days.reduce((a,d)=>!a||rec(D[d])>rec(D[a])?d:a,0),worst=days.reduce((a,d)=>!a||rec(D[d])<rec(D[a])?d:a,0);
+  const dd=d=>String(d).padStart(2,"0")+"/"+String(m).padStart(2,"0");
+  $("gd-bigs").innerHTML=[big("💳","Recebido no mês",brl(T),"entra nas formas de pagamento · "+mnx(m),"hero"),
+    big("📅","Dias com venda",num(days.length),"de "+dim+" dias do mês"),
+    big("📊","Média por dia aberto",brl(days.length?T/days.length:0),num(days.length?TN/days.length:0)+" vendas por dia"),
+    big("🏆","Melhor dia",best?dd(best)+" "+(DSN[D[best].ds]||D[best].ds):"—",best?brl(rec(D[best])):"","green",true),
+    big("😴","Dia mais fraco",worst?dd(worst)+" "+(DSN[D[worst].ds]||D[worst].ds):"—",worst?brl(rec(D[worst])):"","amber",true)].join("");
+  const mx=Math.max(1,...days.map(d=>rec(D[d])));
+  $("gd-ch").innerHTML=Array.from({length:dim},(_,i)=>{const d=i+1,o=D[d];const wd=new Date(2026,m-1,d).getDay();
+    if(!o)return `<div class="gdb off" title="${dd(d)}: sem venda"><span class="st"></span><small>${d}</small></div>`;
+    const seg=Object.entries(o.ch).filter(([,v])=>v>0).sort((a,b)=>+b[0]-+a[0]).map(([k,v])=>`<i style="height:${(v/mx*100).toFixed(2)}%;background:${(CHC[k]||["","","var(--faint)"])[2]}"></i>`).join("");
+    return `<div class="gdb${wd===0||wd===6?" we":""}" title="${dd(d)} ${DSN[o.ds]||o.ds}: ${brl(rec(o))}"><span class="st">${seg}</span><small>${d}</small></div>`}).join("");
+  const showCh=!gd.c;
+  $("gd-tb").innerHTML=`<thead><tr><th>Dia</th><th class="r">Vendas</th><th class="r">Bruto</th><th class="r">Descontos</th><th class="r">Cancelado</th><th class="r">💳 Recebido</th><th class="r">% do mês</th><th class="r">Líquido</th><th class="r">Ticket</th>${showCh?'<th class="r">🍽️ Restaurante</th><th class="r">🛒 Boutique</th><th class="r">🛵 iFood</th>':""}</tr></thead><tbody>${days.map(d=>{const o=D[d],r=rec(o);return `<tr${d===best?' class="sub"':""}><td class="mono">${dd(d)} ${o.ds}</td><td class="r">${num(o.n)}</td><td class="r">${brl(o.tot)}</td><td class="r">${o.desc?"− "+brl(o.desc):"—"}</td><td class="r${o.canc?" negc":""}">${o.canc?"− "+brl(o.canc):"—"}</td><td class="r"><b>${brl(r)}</b></td><td class="r">${pct(T?r/T:0)}</td><td class="r">${brl(o.liq)}</td><td class="r">${brl(o.n?o.liq/o.n:0)}</td>${showCh?["2","1","4"].map(k=>`<td class="r">${o.ch[k]?brl(o.ch[k]):"—"}</td>`).join(""):""}</tr>`}).join("")}</tbody><tbody class="tfoot"><tr><td>Total ${mnx(m)}</td><td class="r">${num(TN)}</td><td class="r">${brl(days.reduce((a,d)=>a+D[d].tot,0))}</td><td class="r">− ${brl(days.reduce((a,d)=>a+D[d].desc,0))}</td><td class="r">− ${brl(days.reduce((a,d)=>a+D[d].canc,0))}</td><td class="r">${brl(T)}</td><td class="r">100%</td><td class="r">${brl(TL)}</td><td class="r">${brl(TN?TL/TN:0)}</td>${showCh?["2","1","4"].map(k=>`<td class="r">${brl(days.reduce((a,d)=>a+(D[d].ch[k]||0),0))}</td>`).join(""):""}</tr></tbody>`;
+  const PG=PGM[gd.m];
+  $("gd-pg").innerHTML=PG?(()=>{const L=Object.entries(PG).map(([k,v])=>[k,v[1]]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]),tt=L.reduce((a,x)=>a+x[1],0);return `<b>Forma de pagamento no mês de ${mnx(m)} (total, todos os canais):</b> `+L.map(([k,v])=>`${k} ${brl(v)} (${pct(v/tt)})`).join(" · ")})():"";
+}
+bindChips($("gd-mes"),x=>{gd.m=x;gdRender()});bindChips($("gd-can"),x=>{gd.c=x;gdRender()});
+gdRender();
 
 /* ===== FATURAMENTO ===== */
 const tsel={c:"",ind:false};
